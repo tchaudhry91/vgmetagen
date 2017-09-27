@@ -72,3 +72,35 @@ func InitGamesList(apiKey string, num int) (GamesDirectory, error) {
 	}
 	return games, errorReturn
 }
+
+// GetGameData returns a populated game object with game data from a local db or via GiantBomb
+func GetGameData(apiKey string, gameID int) Game {
+	urlGame, err := url.Parse(urlRawBase)
+	if err != nil {
+		log.Panicf("Could Not Parse raw urlGames %s", urlRawBase)
+	}
+	urlGame.Path += "/game/" + strconv.Itoa(gameID)
+	params := url.Values{}
+	params.Add("api_key", apiKey)
+	params.Add("format", "json")
+	params.Add("field_list", "aliases,id,name,original_release_data,platforms,developers,publishers,concepts,similar_games")
+	urlGame.RawQuery = params.Encode()
+	log.Infof("Making call for GameID:%d", gameID)
+	response, err := http.Get(urlGame.String())
+	if err != nil {
+		log.Panic("Could not Game data from GiantBomb for GameId:", gameID, "\nError", err)
+	}
+	var gameResponse GameGiantBombResponse
+	var gameData Game
+	defer response.Body.Close()
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		log.Error("Could not read body:", err)
+	}
+	err = json.Unmarshal(body, &gameResponse)
+	if err != nil {
+		log.Error("Could not unmarshal json", string(body), err)
+	}
+	gameData = gameResponse.Results
+	return gameData
+}

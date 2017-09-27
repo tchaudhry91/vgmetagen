@@ -12,6 +12,7 @@ type GamesResponse struct {
 	Version              string         `json:"version"`
 }
 
+// GameGiantBombResponse is a data struct for umarshalling json output from the GiantBomb api endpoint /game
 type GameGiantBombResponse struct {
 	ErrorStatus          string `json:"error"`
 	Limit                int    `json:"limit"`
@@ -64,7 +65,13 @@ type Game struct {
 		ID            int    `json:"id"`
 		Name          string `json:"name"`
 		SiteDetailURL string `json:"site_detail_url"`
-	}
+	} `json:"concepts"`
+	SimilarGames []struct {
+		APIDetailURL  string `json:"api_detail_url"`
+		ID            int    `json:"id"`
+		Name          string `json:"name"`
+		SiteDetailURL string `json:"site_detail_url"`
+	} `json:"similar_games"`
 }
 
 // initMap initializes the map in the directory
