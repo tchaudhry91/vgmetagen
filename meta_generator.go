@@ -2,6 +2,7 @@ package vgmetagen
 
 import (
 	"encoding/json"
+	"errors"
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"net/http"
@@ -10,36 +11,38 @@ import (
 )
 
 const (
-	urlRawBase = "https://giantbomb.com/api"
+	urlRawBase = "https://www.giantbomb.com/api"
 )
 
 // InitGamesList initializes a games list with Names and Giantbomb IDs of top N games.
 // The list is sorted in ascending order based on the number of user reviews to guage popularity
-func InitGamesList(apiKey string, num int) (GamesDirectory, error) {
+func InitGamesList(apiKey string, num int, numPerRequest int) (GamesDirectory, error) {
 	var games GamesDirectory
 	var errorReturn error
 	resultsChan := make(chan GameResponse, 1000)
-	numGoRoutines := (num / 100) + 1
+	numGoRoutines := (num / numPerRequest) + 1
 	offsetChan := make(chan int, 1)
 	log.Infof("Will need %d go routines", numGoRoutines)
-	for i := 0; i <= num; i += 100 {
+	for i := 0; i <= num; i += numPerRequest {
 		offsetChan <- i
 		go func() {
 			urlGames, err := url.Parse(urlRawBase)
 			if err != nil {
 				log.Panicf("Could Not Parse raw urlGames %s", urlRawBase)
 			}
-			urlGames.Path += "/games"
+			urlGames.Path += "/games/"
 			offset := <-offsetChan
 			params := url.Values{}
 			params.Add("api_key", apiKey)
 			params.Add("offset", strconv.Itoa(offset))
 			params.Add("sort", "number_of_user_reviews:desc")
 			params.Add("format", "json")
+			params.Add("limit", strconv.Itoa(numPerRequest))
 			params.Add("field_list", "name,id")
 			urlGames.RawQuery = params.Encode()
 
 			log.Infof("Making call to for offset %d\n", offset)
+			log.Info("Called URL:", urlGames.String())
 			response, err := http.Get(urlGames.String())
 			if err != nil {
 				log.Error("Could not get Games List because:", err)
@@ -74,7 +77,9 @@ func InitGamesList(apiKey string, num int) (GamesDirectory, error) {
 }
 
 // GetGameData returns a populated game object with game data from a local db or via GiantBomb
-func GetGameData(apiKey string, gameID int) Game {
+func GetGameData(apiKey string, gameID int) (Game, error) {
+	var gameData Game
+	var errorReturn error
 	urlGame, err := url.Parse(urlRawBase)
 	if err != nil {
 		log.Panicf("Could Not Parse raw urlGames %s", urlRawBase)
@@ -88,19 +93,21 @@ func GetGameData(apiKey string, gameID int) Game {
 	log.Infof("Making call for GameID:%d", gameID)
 	response, err := http.Get(urlGame.String())
 	if err != nil {
-		log.Panic("Could not Game data from GiantBomb for GameId:", gameID, "\nError", err)
+		log.Error("Could not Game data from GiantBomb for GameId:", gameID, "\nError", err)
+		return gameData, errors.New("Could not get data from GiantBomb")
 	}
 	var gameResponse GameGiantBombResponse
-	var gameData Game
 	defer response.Body.Close()
 	body, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		log.Error("Could not read body:", err)
+		return gameData, errors.New("Problem reading response from GiantBomb")
 	}
 	err = json.Unmarshal(body, &gameResponse)
 	if err != nil {
-		log.Error("Could not unmarshal json", string(body), err)
+		log.Error("Could not unmarshal json:", err)
+		return gameData, errors.New("Improper JSON received, cannot parse")
 	}
 	gameData = gameResponse.Results
-	return gameData
+	return gameData, errorReturn
 }
