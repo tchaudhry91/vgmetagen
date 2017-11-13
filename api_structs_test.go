@@ -16,7 +16,7 @@ func init() {
 		Name: "Awesome Game 2",
 		ID:   2,
 	}
-	sampleGame2 = GameResponse{
+	sampleGame3 = GameResponse{
 		Name: "Awesome Game 3",
 		ID:   3,
 	}

@@ -1,5 +1,10 @@
 package vgmetagen
 
+import (
+	"math/rand"
+	"time"
+)
+
 // GamesResponse is a data struct for unmarshalling json output from the GiantBomb api endpoint /games
 type GamesResponse struct {
 	ErrorStatus          string         `json:"error"`
@@ -87,11 +92,16 @@ func (directory *GamesDirectory) addGame(game GameResponse) {
 // RandomGame returns a random game from the directory
 func (directory *GamesDirectory) RandomGame() GameResponse {
 	// Get a random element from the directory
+	rand.Seed(time.Now().UnixNano())
+	randomSteps := rand.Intn(len(directory.Games))
 	var game GameResponse
 	for id, name := range directory.Games {
 		game.ID = id
 		game.Name = name
-		break
+		randomSteps--
+		if randomSteps == 0 {
+			break
+		}
 	}
 	return game
 }
