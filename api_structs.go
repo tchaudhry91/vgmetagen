@@ -1,6 +1,7 @@
 package vgmetagen
 
 import (
+	"errors"
 	"math/rand"
 	"time"
 )
@@ -90,11 +91,14 @@ func (directory *GamesDirectory) addGame(game GameResponse) {
 }
 
 // RandomGame returns a random game from the directory
-func (directory *GamesDirectory) RandomGame() GameResponse {
+func (directory *GamesDirectory) RandomGame() (GameResponse, error) {
 	// Get a random element from the directory
+	var game GameResponse
+	if len(directory.Games) < 1 {
+		return game, errors.New("Invalid Games Directory, no games found")
+	}
 	rand.Seed(time.Now().UnixNano())
 	randomSteps := rand.Intn(len(directory.Games))
-	var game GameResponse
 	for id, name := range directory.Games {
 		game.ID = id
 		game.Name = name
@@ -103,5 +107,5 @@ func (directory *GamesDirectory) RandomGame() GameResponse {
 			break
 		}
 	}
-	return game
+	return game, nil
 }

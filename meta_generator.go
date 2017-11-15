@@ -17,6 +17,7 @@ const (
 // InitGamesList initializes a games list with Names and Giantbomb IDs of top N games.
 // The list is sorted in ascending order based on the number of user reviews to guage popularity
 func InitGamesList(apiKey string, num int, numPerRequest int) (GamesDirectory, error) {
+	log.Infof("Preparing Game Directory for %s, %d, %d", apiKey, num, numPerRequest)
 	var games GamesDirectory
 	var errorReturn error
 	resultsChan := make(chan GameResponse, 1000)
@@ -76,7 +77,7 @@ func InitGamesList(apiKey string, num int, numPerRequest int) (GamesDirectory, e
 	return games, errorReturn
 }
 
-// GetGameData returns a populated game object with game data from a local db or via GiantBomb
+// GetGameData returns a populated game object with game data from GiantBomb
 func GetGameData(apiKey string, gameID int) (Game, error) {
 	var gameData Game
 	var errorReturn error
@@ -88,7 +89,7 @@ func GetGameData(apiKey string, gameID int) (Game, error) {
 	params := url.Values{}
 	params.Add("api_key", apiKey)
 	params.Add("format", "json")
-	params.Add("field_list", "aliases,id,name,original_release_data,platforms,developers,publishers,concepts,similar_games")
+	params.Add("field_list", "aliases,id,name,original_release_date,platforms,developers,publishers,concepts,similar_games")
 	urlGame.RawQuery = params.Encode()
 	log.Infof("Making call for GameID:%d", gameID)
 	response, err := http.Get(urlGame.String())
